@@ -26,5 +26,5 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ github.workflow }}
           push: true
           tags: |
-            docker.io/oniicyan99/hentaiathome:1.6.4.8
-            docker.io/oniicyan99/hentaiathome:latest
+            docker.io/yiyule10/hentaiathome:1.6.4.9
+            docker.io/yiyule10/hentaiathome:latest

@@ -74,8 +74,22 @@ while [ ! $SKIP ]; do
 	-o $HATHPHP \
 	-d ''$DATA'' \
 	'https://e-hentai.org/hentaiathome.php?cid='$HATHCID'&act=settings'
-	[ $(ACTION client_settings | grep port=$WANPORT) ] && \
-	echo 外部端口 $WANPORT/tcp 更新成功 && break
+	
+	# 添加短暂延迟以确保服务器处理完成
+	sleep 5
+	
+	# 验证端口更新 - 增加更多重试机会和延迟
+	if [ $(ACTION client_settings | grep port=$WANPORT) ]; then
+		echo 外部端口 $WANPORT/tcp 更新成功
+		break
+	else
+		# 再次尝试验证，给服务器更多时间处理
+		sleep 10
+		if [ $(ACTION client_settings | grep port=$WANPORT) ]; then
+			echo 外部端口 $WANPORT/tcp 更新成功
+			break
+		fi
+	fi
 done
 
 [ $SKIP ] || ACTION client_start >/dev/null

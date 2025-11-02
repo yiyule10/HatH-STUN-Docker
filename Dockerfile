@@ -16,5 +16,5 @@ RUN chmod +x /files/* && \
     rm -rf /var/cache/apk/*
 CMD ["start.sh"]
 
-LABEL org.opencontainers.image.source="https://github.com/Oniicyan/HatH-STUN-Docker" \
+LABEL org.opencontainers.image.source="https://github.com/yiyule10/HatH-STUN-Docker" \
       org.opencontainers.image.description="Hentai@Home (H@H, HatH) client with STUN (NAT Traversal) support"
