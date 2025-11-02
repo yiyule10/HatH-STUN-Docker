@@ -58,6 +58,7 @@ done
 # 发送 client_suspend 后，更新端口信息
 # 更新后，发送 client_settings 验证端口
 [ $SKIP ] || ACTION client_suspend >/dev/null
+UPDATE_SUCCESS=0
 while [ ! $SKIP ]; do
 	let SET++
  	[ $SET -gt 3 ] && echo 更新 H@H 客户端设置信息失败，请检查代理 && break
@@ -75,7 +76,7 @@ while [ ! $SKIP ]; do
 	-d ''$DATA'' \
 	'https://e-hentai.org/hentaiathome.php?cid='$HATHCID'&act=settings'
 	[ $(ACTION client_settings | grep port=$WANPORT) ] && \
-	echo 外部端口 $WANPORT/tcp 更新成功 && break
+	echo 外部端口 $WANPORT/tcp 更新成功 && UPDATE_SUCCESS=1 && break
 done
 
 [ $SKIP ] || ACTION client_start >/dev/null
