@@ -30,20 +30,20 @@ ACTION() {
 }
 
 # 检测是否需要更改端口
-[ $(ACTION client_settings | grep port=$WANPORT) ] && \
-echo 外部端口 $WANPORT/tcp 未发生变化 && SKIP=1
+if ACTION client_settings | grep -q "port=$WANPORT"; then
+	echo 外部端口 $WANPORT/tcp 未发生变化
+	SKIP=1
+fi
 
-# 获取 H@H 客户端设置信息
-while [ ! $SKIP ] && [ ! $f_cname ]; do
-	let GET++
- 	[ $GET -gt 3 ] && echo 获取 H@H 客户端设置信息失败，请检查代理 && exit 1
- 	[ $GET -ne 1 ] && echo 获取 H@H 客户端设置信息失败，15 秒后重试 && sleep 15
+# 获取 H@H 客户端设置信息（仅当需要更新时）
+if [ -z "$SKIP" ]; then
 	HATHPHP=/tmp/settings.php
 	>$HATHPHP
 	curl $PROXY -Ls -m 15 \
-	-b 'ipb_member_id='$EHIPBID'; ipb_pass_hash='$EHIPBPW'' \
+	-b "ipb_member_id=$EHIPBID; ipb_pass_hash=$EHIPBPW" \
 	-o $HATHPHP \
-	'https://e-hentai.org/hentaiathome.php?cid='$HATHCID'&act=settings'
+	"https://e-hentai.org/hentaiathome.php?cid=$HATHCID&act=settings"
+
 	f_cname=$(grep f_cname $HATHPHP | awk -F '"' '{print$6}' | sed 's/[ ]/+/g')
 	f_throttle_KB=$(grep f_throttle_KB $HATHPHP | awk -F '"' '{print$6}')
 	f_disklimit_GB=$(grep f_disklimit_GB $HATHPHP | awk -F '"' '{print$6}')
@@ -53,37 +53,35 @@ while [ ! $SKIP ] && [ ! $f_cname ]; do
 	f_disable_logging=$(grep f_disable_logging $HATHPHP | grep checked)
 	f_use_less_memory=$(grep f_use_less_memory $HATHPHP | grep checked)
 	f_is_hathdler=$(grep f_is_hathdler $HATHPHP | grep checked)
-done
 
-# 发送 client_suspend 后，更新端口信息
-# 更新后，发送 client_settings 验证端口
-[ $SKIP ] || ACTION client_suspend >/dev/null
-UPDATE_SUCCESS=0
-while [ ! $SKIP ]; do
-	let SET++
- 	[ $SET -gt 3 ] && echo 更新 H@H 客户端设置信息失败，请检查代理 && break
-	[ $SET -ne 1 ] && echo 更新 H@H 客户端设置信息失败，15 秒后重试 && sleep 15
-	DATA='settings=1&f_port='$WANPORT'&f_cname='$f_cname'&f_throttle_KB='$f_throttle_KB'&f_disklimit_GB='$f_disklimit_GB''
-	[ "$p_mthbwcap" = 0 ] || DATA=''$DATA'&p_mthbwcap='$p_mthbwcap''
-	[ "$f_diskremaining_MB" = 0 ] || DATA=''$DATA'&f_diskremaining_MB='$f_diskremaining_MB''
-	[ $f_enable_bwm ] && DATA=''$DATA'&f_enable_bwm=on'
-	[ $f_disable_logging ] && DATA=''$DATA'&f_disable_logging=on'
-	[ $f_use_less_memory ] && DATA=''$DATA'&f_use_less_memory=on'
-	[ $f_is_hathdler ] && DATA=''$DATA'&f_is_hathdler=on'
+	# 发送暂停指令
+	ACTION client_suspend >/dev/null
+
+	# 构造并提交设置数据（仅一次）
+	DATA="settings=1&f_port=$WANPORT&f_cname=$f_cname&f_throttle_KB=$f_throttle_KB&f_disklimit_GB=$f_disklimit_GB"
+	[ "$p_mthbwcap" = 0 ] || DATA="$DATA&p_mthbwcap=$p_mthbwcap"
+	[ "$f_diskremaining_MB" = 0 ] || DATA="$DATA&f_diskremaining_MB=$f_diskremaining_MB"
+	[ "$f_enable_bwm" ] && DATA="$DATA&f_enable_bwm=on"
+	[ "$f_disable_logging" ] && DATA="$DATA&f_disable_logging=on"
+	[ "$f_use_less_memory" ] && DATA="$DATA&f_use_less_memory=on"
+	[ "$f_is_hathdler" ] && DATA="$DATA&f_is_hathdler=on"
+
 	curl $PROXY -Ls -m 15 \
-	-b 'ipb_member_id='$EHIPBID'; ipb_pass_hash='$EHIPBPW'' \
+	-b "ipb_member_id=$EHIPBID; ipb_pass_hash=$EHIPBPW" \
 	-o $HATHPHP \
-	-d ''$DATA'' \
-	'https://e-hentai.org/hentaiathome.php?cid='$HATHCID'&act=settings'
-	[ $(ACTION client_settings | grep port=$WANPORT) ] && \
-	echo 外部端口 $WANPORT/tcp 更新成功 && UPDATE_SUCCESS=1 && break
-done
+	-d "$DATA" \
+	"https://e-hentai.org/hentaiathome.php?cid=$HATHCID&act=settings"
 
-# 根据更新结果输出完成信息
-if [ $SKIP -eq 1 ] || [ $UPDATE_SUCCESS -eq 1 ]; then
+	# 验证更新结果（仅提示，不影响流程）
+	if ACTION client_settings | grep -q "port=$WANPORT"; then
+		echo 外部端口 $WANPORT/tcp 更新成功
+	else
+		echo 警告：端口更新可能未生效，请手动检查
+	fi
+
+	# 启动客户端
 	ACTION client_start >/dev/null
-    echo 成功刷新 Hentai@Home with STUN
-else
-	ACTION client_start >/dev/null
-    echo 尝试刷新 Hentai@Home with STUN（端口更新失败但仍继续运行）
+	
 fi
+
+echo 成功刷新 Hentai@Home with STUN
