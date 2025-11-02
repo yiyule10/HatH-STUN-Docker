@@ -79,11 +79,11 @@ while [ ! $SKIP ]; do
 	echo 外部端口 $WANPORT/tcp 更新成功 && UPDATE_SUCCESS=1 && break
 done
 
-[ $SKIP ] || ACTION client_start >/dev/null
-
 # 根据更新结果输出完成信息
 if [ $SKIP -eq 1 ] || [ $UPDATE_SUCCESS -eq 1 ]; then
+	ACTION client_start >/dev/null
     echo 成功刷新 Hentai@Home with STUN
 else
+	ACTION client_start >/dev/null
     echo 尝试刷新 Hentai@Home with STUN（端口更新失败但仍继续运行）
 fi
