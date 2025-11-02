@@ -79,4 +79,10 @@ while [ ! $SKIP ]; do
 done
 
 [ $SKIP ] || ACTION client_start >/dev/null
-echo 成功刷新 Hentai@Home with STUN
+
+# 根据更新结果输出完成信息
+if [ $SKIP -eq 1 ] || [ $UPDATE_SUCCESS -eq 1 ]; then
+    echo 成功刷新 Hentai@Home with STUN
+else
+    echo 尝试刷新 Hentai@Home with STUN（端口更新失败但仍继续运行）
+fi
